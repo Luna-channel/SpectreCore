@@ -109,9 +109,16 @@ class LLMUtils:
         Returns:
             ProviderRequest 对象
         """
+        # 立即捕获event的关键信息，防止并发时被覆盖
         platform_name = event.get_platform_name()
         is_private = event.is_private_chat()
         chat_id = event.get_group_id() if not is_private else event.get_sender_id()
+        original_sender_id = event.get_sender_id()
+        original_sender_name = event.get_sender_name()
+        
+        # 将原始发送者信息保存到event的额外数据中
+        # 这样可以确保即使event对象被复用，也能找到正确的发送者
+        logger.debug(f"[LLM Call] 保存原始发送者信息: {original_sender_name}/{original_sender_id}")
         
         # 构建基础Prompt
         # 对于aiocqhttp平台 通过调用协议端api获取bot用户名

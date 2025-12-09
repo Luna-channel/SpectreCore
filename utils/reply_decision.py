@@ -78,6 +78,16 @@ class ReplyDecision:
         # 检查关键词触发
         keywords = frequency_config.get("keywords", [])
         if keywords and ReplyDecision._check_keywords(event, keywords):
+            # 即使触发了关键词，也要检查是否已有LLM在处理中
+            # 避免并发处理同一群聊的多条消息
+            platform_name = event.get_platform_name()
+            is_private = event.is_private_chat()
+            chat_id = event.get_sender_id() if is_private else event.get_group_id()
+            
+            if LLMUtils.is_llm_in_progress(platform_name, is_private, chat_id):
+                logger.debug("消息中包含关键词，但当前聊天已有大模型处理中，不进行回复")
+                return False
+            
             logger.debug("消息中包含关键词，触发回复")
             return True
         

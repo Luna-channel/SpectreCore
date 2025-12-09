@@ -6,6 +6,50 @@ from datetime import datetime
 from .image_caption import ImageCaptionUtils
 import asyncio
 
+def _safe_isinstance(obj, class_name: str) -> bool:
+    """
+    安全地检查对象是否为指定类的实例
+    如果类不存在，则使用 type 属性检查
+    
+    Args:
+        obj: 要检查的对象
+        class_name: 类名（字符串）
+        
+    Returns:
+        是否为该类的实例
+    """
+    # 首先尝试使用 type 属性检查（更可靠）
+    if hasattr(obj, 'type'):
+        type_mapping = {
+            'anonymous': 'Anonymous',
+            'rps': 'RPS',
+            'dice': 'Dice',
+            'shake': 'Shake',
+            'redbag': 'RedBag',
+            'poke': 'Poke',
+            'forward': 'Forward',
+            'node': 'Node',
+            'nodes': 'Nodes',
+            'xml': 'Xml',
+            'json': 'Json',
+            'cardimage': 'CardImage',
+            'tts': 'TTS',
+            'wechatemoji': 'WechatEmoji',
+        }
+        obj_type = getattr(obj, 'type', '').lower()
+        if obj_type in type_mapping and type_mapping[obj_type] == class_name:
+            return True
+    
+    # 如果类存在，使用 isinstance 检查
+    try:
+        cls = globals().get(class_name)
+        if cls is not None:
+            return isinstance(obj, cls)
+    except (NameError, TypeError):
+        pass
+    
+    return False
+
 class MessageUtils:
     """
     消息处理工具类
@@ -126,13 +170,13 @@ class MessageUtils:
                 outline += "[语音]"
             elif isinstance(i, Video):
                 outline += "[视频]"
-            elif isinstance(i, RPS):
+            elif _safe_isinstance(i, 'RPS'):
                 outline += "[猜拳]"
-            elif isinstance(i, Dice):
+            elif _safe_isinstance(i, 'Dice'):
                 outline += "[骰子]"
-            elif isinstance(i, Shake):
+            elif _safe_isinstance(i, 'Shake'):
                 outline += "[抖一抖]"
-            elif isinstance(i, Anonymous):
+            elif _safe_isinstance(i, 'Anonymous'):
                 outline += "[匿名]"
             elif isinstance(i, Share):
                 outline += f"[分享:《{i.title}》{i.content if i.content else ''}]"
@@ -142,24 +186,25 @@ class MessageUtils:
                 outline += f"[位置:{i.title}{f'({i.content})' if i.content else ''}]"
             elif isinstance(i, Music):
                 outline += f"[音乐:{i.title}{f'({i.content})' if i.content else ''}]"
-            elif isinstance(i, RedBag):
-                outline += f"[红包:{i.title}]"
-            elif isinstance(i, Poke):
-                outline += f"[戳一戳 对:{i.qq}]"
-            elif isinstance(i, Forward):
+            elif _safe_isinstance(i, 'RedBag'):
+                outline += f"[红包:{getattr(i, 'title', '')}]"
+            elif _safe_isinstance(i, 'Poke'):
+                outline += f"[戳一戳 对:{getattr(i, 'qq', '')}]"
+            elif _safe_isinstance(i, 'Forward'):
                 outline += f"[合并转发消息]"
-            elif isinstance(i, Node):
+            elif _safe_isinstance(i, 'Node'):
                 outline += f"[合并转发消息]"
-            elif isinstance(i, Nodes):
+            elif _safe_isinstance(i, 'Nodes'):
                 outline += f"[合并转发消息]"
-            elif isinstance(i, Xml):
+            elif _safe_isinstance(i, 'Xml'):
                 outline += f"[XML消息]"
-            elif isinstance(i, Json):
+            elif _safe_isinstance(i, 'Json'):
                 # 尝试从JSON中提取有用信息
-                if isinstance(i.data, str):
+                json_data_attr = getattr(i, 'data', None)
+                if isinstance(json_data_attr, str):
                     try:
                         import json
-                        json_data = json.loads(i.data)
+                        json_data = json.loads(json_data_attr)
                         if "prompt" in json_data:
                             outline += f"[JSON卡片:{json_data.get('prompt', '')}]"
                         elif "app" in json_data:
@@ -170,13 +215,13 @@ class MessageUtils:
                         outline += "[JSON消息]"
                 else:
                     outline += "[JSON消息]"
-            elif isinstance(i, CardImage):
-                outline += f"[卡片图片:{i.source if i.source else ''}]"
-            elif isinstance(i, TTS):
-                outline += f"[TTS:{i.text}]"
+            elif _safe_isinstance(i, 'CardImage'):
+                outline += f"[卡片图片:{getattr(i, 'source', '')}]"
+            elif _safe_isinstance(i, 'TTS'):
+                outline += f"[TTS:{getattr(i, 'text', '')}]"
             elif isinstance(i, File):
                 outline += f"[文件:{i.name}]"
-            elif isinstance(i, WechatEmoji):
+            elif _safe_isinstance(i, 'WechatEmoji'):
                 outline += "[微信表情]"
             elif isinstance(i, Reply):
                 if i.chain:
